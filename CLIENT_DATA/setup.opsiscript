@@ -1,0 +1,203 @@
+; ----------------------------------------------------------------
+; Copyright (c) uib gmbh (www.uib.de)
+; This sourcecode is owned by uib
+; and published under the Terms of the General Public License.
+; credits: http://www.opsi.org/en/credits/
+; ----------------------------------------------------------------
+
+;****************************************
+; SETUPTYPE      nsis
+;****************************************
+; PRODUCTID      ica-ERB-browser
+; SETUPFILE      ccsetup540.exe
+;****************************************
+; LICENSE        false     
+; PRODUCTDESC    ERB Secure Browser
+
+; PRODUCTNAME    ICA-ERB-browser
+; PRODUCTSIZE    64 MB
+; PRODUCTVER     1
+;****************************************
+; SETUPSCRIPT    setup.opsiscript
+; UNINSSCRIPT    uninstall.opsiscript
+;****************************************
+; MSIID          
+; USE-MST        
+; INSTALLDIR     \users\student\Desktop
+;****************************************
+; TIMESTAMP      3/18/2019 8:20:00
+;****************************************
+
+[Actions]
+requiredWinstVersion >= "4.11.4.3"
+ScriptErrorMessages = false
+
+DefVar $SetupType$
+DefVar $ProductId$ 
+DefVar $Setupfile$ 
+DefVar $InstallDir$
+DefVar $MinimumSpace$
+DefVar $ExitCode$
+DefVar $ErrorMsg$
+DefVar $LicenseRequired$
+DefVar $LicenseKey$
+DefVar $LicensePool$
+DefVar $MsiId$
+DefVar $NsisInstallBatch$
+DefVar $LogDir$
+
+DefStringList $list2$
+DefVar $Progfileloc$
+DefVar $cmdloc$
+DefVar $PROP_enable_popups$
+DefVar $PROP_save_link$
+DefVar $PROP_install_browser$
+
+set $PROP_enable_popups$ = GetProductProperty("enable_popups","true")
+set $PROP_save_link$ = GetProductProperty("save_link","true")
+set $PROP_install_browser$ = GetProductProperty("install_browser","true")
+
+Set $LogDir$ = "%opsiLogDir%"
+
+include_append "%ScriptPath%\check_nsis_exitcode.opsiscript"
+
+; ----------------------------------------------------------------
+Set $SetupType$       = "nsis"
+; ----------------------------------------------------------------
+
+; $ProductId$ is the name of the product in opsi, only lower letters, no umlauts, no white spaces, use '-' as a seperator
+Set $ProductId$       = "ica-ERB-browser"
+Set $Setupfile$       = ""
+; the path where we find the product after the installation
+Set $InstallDir$      = "%ProfileDir%\student\Desktop"
+Set $LicenseRequired$ = "false"
+Set $LicensePool$     = "p_" + $ProductId$
+Set $MsiId$           = ""
+Set $MinimumSpace$    = "64 MB"
+; ----------------------------------------------------------------
+; ----------------------------------------------------------------
+
+if not(HasMinimumSpace ("%SystemDrive%", $MinimumSpace$))
+   LogError "Not enough space on %SystemDrive%, " + $MinimumSpace$ + " on drive %SystemDrive% needed for " + $ProductId$
+   isFatalError "No Space"
+   ; Stop process and set installation status to failed
+else
+   comment "Show product picture"
+   ShowBitmap "%ScriptPath%\" + $ProductId$ + ".png" $ProductId$
+
+   if FileExists("%ScriptPath%\delsub.opsiscript")
+      comment "Start uninstall sub section"
+      Sub "%ScriptPath%\delsub.opsiscript"
+   endif
+   
+   Message "Installing " + $ProductId$ + " ..."
+   
+   comment "Start setup program"
+   ChangeDirectory "%SCRIPTPATH%"
+  
+  
+; get the IE version ==========================================================  
+   comment "Get the Internet Explorer Version Number"
+   DOSInAnIconGetIEversion
+
+  
+; case on popup blocker ============================================================
+
+; "turn off popup blocker"
+   if ($PROP_enable_popups$ = "true")
+       comment "Enable Popups"
+       Registry_EnablePopups /AllNTUserdats
+   endif
+
+      ;----------------------------------------------
+   Sub_check_exitcode
+   
+; end case on popup blocker ========================================================
+   
+    
+; case on save readiness test link ================================================
+
+; "save readiness test link"
+   if ($PROP_save_link$ = "true")
+        comment "Save System Readiness test link"
+        set $cmdloc$ = "%System%\cmd.exe"
+   		set $list2$ = createStringList ('common_startmenu')
+   		for $var$ in $list2$ do LinkFolder_SystemReady
+   endif
+
+      ;----------------------------------------------
+   Sub_check_exitcode
+   
+; end case on readiness test link ============================================
+
+
+; case on install browser ========================================
+
+; "install the ERB secure browser"
+   if ($PROP_install_browser$ = "true")
+      	comment "Install the ERB secure browser"
+      	set $Progfileloc$ = $InstallDir$ + "\ERB Secure Browser.exe"
+      	Files_browser
+   		set $list2$ = createStringList ('common_startmenu')
+   		for $var$ in $list2$ do LinkFolder_Browser
+   endif
+
+      ;----------------------------------------------
+;   Sub_check_exitcode
+   
+; end case on install browser ====================================
+  
+  
+; endif on is disk space available   
+endif
+
+; ----------------------------------------------------------------
+; install section
+; ----------------------------------------------------------------
+
+[DOSInAnIconGetIEversion] 
+reg query "HKEY_LOCAL_MACHINE\Software\Microsoft\Internet Explorer" /v svcVersion
+
+; ----------------------------------------------------------------
+
+[Registry_EnablePopups]
+openkey [Software\Microsoft\Internet Explorer\New Windows]
+set "PopupMgr" = REG_DWORD:00000000
+
+; ----------------------------------------------------------------
+
+[Files_browser]
+; copy the ERB secure browser executable file to the all-user desktop directory:
+;
+ copy "%ScriptPath%\ERB Secure Browser.exe" "$InstallDir$"
+
+; ----------------------------------------------------------------
+
+[LinkFolder_SystemReady]
+set_basefolder $var$
+set_subfolder "ERB"
+set_link
+name: System Readiness Test
+target: $cmdloc$
+parameters: /c start "" https://www.programworkshop.com/PW2/Core/2.0/Login/Login/Home?SK=294
+working_dir: %System%
+icon_file:
+icon_index:
+end_link
+
+; ----------------------------------------------------------------
+
+[LinkFolder_Browser]
+set_basefolder $var$
+set_subfolder "ERB"
+set_link
+name: ERB Secure Browser
+target: $Progfileloc$
+parameters:
+working_dir: $InstallDir$
+icon_file:
+icon_index:
+end_link
+
+; ----------------------------------------------------------------
+; ----------------------------------------------------------------

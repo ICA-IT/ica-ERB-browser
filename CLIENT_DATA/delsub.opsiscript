@@ -1,0 +1,103 @@
+; Copyright (c) uib gmbh (www.uib.de)
+; This sourcecode is owned by uib gmbh
+; and published under the Terms of the General Public License.
+; credits: http://www.opsi.org/en/credits/
+
+include_append "%ScriptPath%\check_nsis_exitcode.opsiscript"
+
+DefVar $found$
+DefVar $UninstallProgram$
+
+Set $found$     = "false"
+Set $MsiId$     = ''
+
+Message "Uninstalling " + $ProductId$ + " ..."
+
+  
+; case on popup blocker ============================================================
+
+; "turn on popup blocker"
+   if ($PROP_enable_popups$ = "true")
+       comment "Disable Popups"
+       Registry_DisablePopups /AllNTUserdats
+   endif
+
+      ;----------------------------------------------
+   Sub_check_exitcode
+   
+; end case on popup blocker ========================================================
+   
+    
+; case on save readiness test link ================================================
+
+; "save readiness test link"
+   if ($PROP_save_link$ = "true")
+        comment "Delete System Readiness test link"
+   		set $list2$ = createStringList ('common_startmenu', 'common_programs')
+   		for $var$ in $list2$ do LinkFolder_NukeSystemReady
+   endif
+
+      ;----------------------------------------------
+   Sub_check_exitcode
+   
+; end case on readiness test link ============================================
+
+
+; case on install browser ========================================
+
+; "uninstall the ERB secure browser"
+   if ($PROP_install_browser$ = "true")
+      	comment "Un-install the ERB secure browser"
+      	Set $UninstallProgram$ = $InstallDir$ + "\ERB Secure Browser.exe"
+      	if (not($InstallDir$ = '')) and (not($InstallDir$ = "not used")) and FileExists($UninstallProgram$)
+      		Files_NukeBrowser
+		endif
+   		set $list2$ = createStringList ('common_startmenu', 'common_programs')
+   		for $var$ in $list2$ do LinkFolder_NukeBrowser
+   		; if the folders should be empty, delete them
+   		if ($PROP_save_link$ = "true") 
+   			for $var$ in $list2$ do LinkFolder_NukeFolder
+		endif
+   endif
+
+      ;----------------------------------------------
+   Sub_check_exitcode
+   
+; end case on install browser ====================================
+
+
+; ----------------------------------------------------------------
+; install section
+; ----------------------------------------------------------------
+
+[Registry_DisablePopups]
+openkey [Software\Microsoft\Internet Explorer\New Windows]
+set "PopupMgr" = REG_DWORD:00000001
+
+; ----------------------------------------------------------------
+
+[Files_NukeBrowser]
+; copy the ERB secure browser executable file to the all-user desktop directory:
+;
+del -f "$InstallDir$\ERB Secure Browser.exe"
+
+; ----------------------------------------------------------------
+
+[LinkFolder_NukeSystemReady]
+set_basefolder $var$
+set_subfolder "ERB"
+delete_element "System Readiness Test"
+
+; ----------------------------------------------------------------
+
+[LinkFolder_NukeBrowser]
+set_basefolder $var$
+set_subfolder "ERB"
+delete_element "ERB Secure Browser"
+
+[LinkFolder_NukeFolder]
+set_basefolder $var$
+delete_subfolder "ERB"
+
+; ----------------------------------------------------------------
+; ----------------------------------------------------------------

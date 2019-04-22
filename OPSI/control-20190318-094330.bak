@@ -1,0 +1,52 @@
+[Package]
+version: 1
+depends: 
+incremental: False
+
+[Product]
+type: localboot
+id: ica-ERB-browser
+name: ICA-ERB-browser
+description: Install the ERB CTP Secure Browser.
+A link will also be provided to perform the system readness test.
+advice: Prepare computer for CTP testing.
+
+
+
+
+version: 1
+priority: 0
+licenseRequired: False
+productClasses: 
+setupScript: setup.opsiscript
+uninstallScript: uninstall.opsiscript
+updateScript: 
+alwaysScript: 
+onceScript: 
+customScript: 
+userLoginScript: 
+
+[ProductDependency]
+action: setup
+requiredProduct: ica-flash-ie-w7
+requiredStatus: installed
+requirementType: before
+
+[ProductProperty]
+type: bool
+name: save_link
+description: Save link to computer readiness test
+default: True
+
+[ProductProperty]
+type: bool
+name: install_browser
+description: Install the ERB browser
+default: True
+
+[Changelog]
+ica-ERB-browser (1-1) stable; urgency=low
+
+	* initial: created by opsi-setup-detector
+
+ -- opsisetupdetector.exe <info@uib.de>  3/18/2019 8:20:00
